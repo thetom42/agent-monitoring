@@ -62,25 +62,25 @@ const Sidebar = ({ open }: SidebarProps) => {
     >
       <Box sx={{ mt: 8 }}>
         <List>
-          <ListItem button>
+          <ListItem component="button">
             <ListItemIcon>
               <DashboardIcon />
             </ListItemIcon>
             <ListItemText primary="Dashboard" />
           </ListItem>
-          <ListItem button>
+          <ListItem component="button">
             <ListItemIcon>
               <TimelineIcon />
             </ListItemIcon>
             <ListItemText primary="Analytics" />
           </ListItem>
-          <ListItem button>
+          <ListItem component="button">
             <ListItemIcon>
               <MemoryIcon />
             </ListItemIcon>
             <ListItemText primary="Resources" />
           </ListItem>
-          <ListItem button>
+          <ListItem component="button">
             <ListItemIcon>
               <SettingsIcon />
             </ListItemIcon>
@@ -98,7 +98,7 @@ const Sidebar = ({ open }: SidebarProps) => {
 
         <List>
           {agents.map((agent) => (
-            <ListItem key={agent.name} button>
+            <ListItem key={agent.name} component="button">
               <ListItemIcon>
                 <CircleIcon
                   sx={{

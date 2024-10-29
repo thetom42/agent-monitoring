@@ -6,6 +6,8 @@ export interface IUser extends mongoose.Document {
     email: string;
     password: string;
     role: 'admin' | 'user';
+    createdAt: Date;
+    updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;
 }
 

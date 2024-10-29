@@ -5,6 +5,7 @@ import sinon from 'sinon';
 import { protect, generateToken, adminOnly } from '../../middleware/auth';
 import User, { IUser } from '../../models/User';
 import { setupTestDB } from '../test.config';
+import jwt from 'jsonwebtoken';
 
 describe('Auth Middleware', () => {
     setupTestDB();
@@ -53,8 +54,35 @@ describe('Auth Middleware', () => {
             expect(nextFunction.called).to.be.false;
         });
 
-        it('should pass if token is valid', async () => {
-            // Create a mock user
+        it('should fail with malformed authorization header', async () => {
+            mockReq.headers = {
+                authorization: 'InvalidBearer token'
+            };
+
+            await protect(mockReq as Request, mockRes as Response, nextFunction);
+
+            expect((mockRes.status as sinon.SinonStub).calledWith(401)).to.be.true;
+            expect((mockRes.json as sinon.SinonStub).calledWith({ 
+                message: 'Not authorized, no token' 
+            })).to.be.true;
+            expect(nextFunction.called).to.be.false;
+        });
+
+        it('should fail with malformed token format', async () => {
+            mockReq.headers = {
+                authorization: 'Bearer token.without.threeparts'
+            };
+
+            await protect(mockReq as Request, mockRes as Response, nextFunction);
+
+            expect((mockRes.status as sinon.SinonStub).calledWith(401)).to.be.true;
+            expect((mockRes.json as sinon.SinonStub).calledWith({ 
+                message: 'Not authorized, token failed' 
+            })).to.be.true;
+            expect(nextFunction.called).to.be.false;
+        });
+
+        it('should fail with expired token', async () => {
             const mockUser = {
                 _id: new mongoose.Types.ObjectId(),
                 username: 'testuser',
@@ -62,34 +90,72 @@ describe('Auth Middleware', () => {
                 role: 'user'
             };
 
-            // Generate a valid token
+            const expiredToken = jwt.sign(
+                { id: mockUser._id, role: mockUser.role },
+                process.env.JWT_SECRET as string,
+                { expiresIn: '0s' }
+            );
+
+            mockReq.headers = {
+                authorization: `Bearer ${expiredToken}`
+            };
+
+            await protect(mockReq as Request, mockRes as Response, nextFunction);
+
+            expect((mockRes.status as sinon.SinonStub).calledWith(401)).to.be.true;
+            expect((mockRes.json as sinon.SinonStub).calledWith({ 
+                message: 'Not authorized, token failed' 
+            })).to.be.true;
+            expect(nextFunction.called).to.be.false;
+        });
+
+        it('should fail if JWT_SECRET is not set', async () => {
+            const originalSecret = process.env.JWT_SECRET;
+            delete process.env.JWT_SECRET;
+
+            mockReq.headers = {
+                authorization: 'Bearer sometoken'
+            };
+
+            await protect(mockReq as Request, mockRes as Response, nextFunction);
+
+            expect((mockRes.status as sinon.SinonStub).calledWith(401)).to.be.true;
+            expect((mockRes.json as sinon.SinonStub).calledWith({ 
+                message: 'Not authorized, token failed' 
+            })).to.be.true;
+            expect(nextFunction.called).to.be.false;
+
+            process.env.JWT_SECRET = originalSecret;
+        });
+
+        it('should pass if token is valid', async () => {
+            const mockUser = {
+                _id: new mongoose.Types.ObjectId(),
+                username: 'testuser',
+                email: 'test@example.com',
+                role: 'user'
+            };
+
             const token = generateToken(mockUser as IUser);
             mockReq.headers = {
                 authorization: `Bearer ${token}`
             };
 
-            // Create a chainable query stub
             const queryStub = {
                 select: sinon.stub().returns(mockUser)
             };
 
-            // Setup the User.findById stub to return the chainable query
             const findByIdStub = sinon.stub(User, 'findById').returns(queryStub as any);
 
-            // Call the middleware
             await protect(mockReq as Request, mockRes as Response, nextFunction);
 
-            // Verify the stubs were called correctly
             expect(findByIdStub.calledOnce).to.be.true;
             expect(queryStub.select.calledWith('-password')).to.be.true;
-            
-            // Verify next was called and user was attached
             expect(nextFunction.calledOnce).to.be.true;
             expect((mockReq as any).user).to.deep.equal(mockUser);
         });
 
         it('should fail if user is not found', async () => {
-            // Create a mock user for token generation
             const mockUser = {
                 _id: new mongoose.Types.ObjectId(),
                 username: 'testuser',
@@ -102,12 +168,10 @@ describe('Auth Middleware', () => {
                 authorization: `Bearer ${token}`
             };
 
-            // Create a chainable query stub that returns null
             const queryStub = {
                 select: sinon.stub().returns(null)
             };
 
-            // Setup the User.findById stub to return the chainable query
             sinon.stub(User, 'findById').returns(queryStub as any);
 
             await protect(mockReq as Request, mockRes as Response, nextFunction);
@@ -162,6 +226,40 @@ describe('Auth Middleware', () => {
                 message: 'Not authorized as admin'
             })).to.be.true;
             expect(nextFunction.called).to.be.false;
+        });
+    });
+
+    describe('generateToken', () => {
+        it('should generate a valid JWT token', () => {
+            const mockUser = {
+                _id: new mongoose.Types.ObjectId(),
+                username: 'testuser',
+                email: 'test@example.com',
+                role: 'user'
+            } as IUser;
+
+            const token = generateToken(mockUser);
+            const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+
+            expect(decoded).to.have.property('id');
+            expect(decoded).to.have.property('role');
+            expect(decoded.id.toString()).to.equal(mockUser._id.toString());
+            expect(decoded.role).to.equal(mockUser.role);
+        });
+
+        it('should set token expiration to 24 hours', () => {
+            const mockUser = {
+                _id: new mongoose.Types.ObjectId(),
+                username: 'testuser',
+                email: 'test@example.com',
+                role: 'user'
+            } as IUser;
+
+            const token = generateToken(mockUser);
+            const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+
+            const expectedExp = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+            expect(Math.abs(decoded.exp - expectedExp)).to.be.lessThan(5);
         });
     });
 });

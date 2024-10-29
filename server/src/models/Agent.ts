@@ -35,6 +35,8 @@ export interface IAgent extends mongoose.Document {
         timestamp: Date;
         stack?: string;
     };
+    createdAt: Date;
+    updatedAt: Date;
     updateHeartbeat(): Promise<IAgent>;
     cleanOldMetrics(): Promise<IAgent>;
 }
@@ -55,30 +57,79 @@ const agentSchema = new mongoose.Schema({
         default: Date.now
     },
     systemInfo: {
-        platform: String,
-        memory: {
-            total: Number,
-            used: Number
+        type: {
+            platform: {
+                type: String,
+                required: true
+            },
+            memory: {
+                type: {
+                    total: {
+                        type: Number,
+                        required: true
+                    },
+                    used: {
+                        type: Number,
+                        required: true
+                    }
+                },
+                required: true
+            },
+            cpu: {
+                type: {
+                    model: {
+                        type: String,
+                        required: true
+                    },
+                    usage: {
+                        type: Number,
+                        required: true
+                    }
+                },
+                required: true
+            },
+            network: {
+                type: {
+                    ip: {
+                        type: String,
+                        required: true
+                    },
+                    interfaces: {
+                        type: [String],
+                        required: true
+                    }
+                },
+                required: true
+            }
         },
-        cpu: {
-            model: String,
-            usage: Number
-        },
-        network: {
-            ip: String,
-            interfaces: [String]
-        }
+        required: true
     },
     metrics: [{
         timestamp: {
             type: Date,
-            default: Date.now
+            default: Date.now,
+            required: true
         },
-        cpuUsage: Number,
-        memoryUsage: Number,
+        cpuUsage: {
+            type: Number,
+            required: true
+        },
+        memoryUsage: {
+            type: Number,
+            required: true
+        },
         networkStats: {
-            bytesIn: Number,
-            bytesOut: Number
+            type: {
+                bytesIn: {
+                    type: Number,
+                    required: true
+                },
+                bytesOut: {
+                    type: Number,
+                    required: true
+                }
+            },
+            required: true
         }
     }],
     tags: [String],
