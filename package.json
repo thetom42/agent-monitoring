@@ -1,0 +1,17 @@
+{
+  "name": "agent-monitor-root",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:ui\" \"npm run dev:server\"",
+    "dev:ui": "cd ui && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build": "npm run build:ui && npm run build:server",
+    "build:ui": "cd ui && npm run build",
+    "build:server": "cd server && npm run build",
+    "install:all": "npm install && cd ui && npm install && cd ../server && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}
