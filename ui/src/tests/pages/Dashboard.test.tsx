@@ -1,16 +1,21 @@
 import { render, screen } from '@testing-library/react';
 import Dashboard from '../../pages/Dashboard/Dashboard';
+import { ReactNode } from 'react';
+
+interface ChartProps {
+  children: ReactNode;
+}
 
 // Mock recharts components
 jest.mock('recharts', () => ({
-    ResponsiveContainer: ({ children }: any) => children,
-    AreaChart: ({ children }: any) => <div data-testid="area-chart">{children}</div>,
+    ResponsiveContainer: ({ children }: ChartProps) => children,
+    AreaChart: ({ children }: ChartProps) => <div data-testid="area-chart">{children}</div>,
     Area: () => <div data-testid="area" />,
     XAxis: () => <div data-testid="xaxis" />,
     YAxis: () => <div data-testid="yaxis" />,
     CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
-    PieChart: ({ children }: any) => <div data-testid="pie-chart">{children}</div>,
+    PieChart: ({ children }: ChartProps) => <div data-testid="pie-chart">{children}</div>,
     Pie: () => <div data-testid="pie" />,
     Cell: () => <div data-testid="cell" />
 }));

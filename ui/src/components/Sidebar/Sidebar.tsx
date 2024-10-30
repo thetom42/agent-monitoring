@@ -21,16 +21,19 @@ interface SidebarProps {
   open: boolean;
 }
 
+type AgentStatus = 'active' | 'idle' | 'error';
+type StatusColor = 'success' | 'warning' | 'error' | 'default';
+
 const Sidebar = ({ open }: SidebarProps) => {
   const drawerWidth = 240;
 
   const agents = [
-    { name: 'Agent-1', status: 'active' },
-    { name: 'Agent-2', status: 'idle' },
-    { name: 'Agent-3', status: 'error' },
+    { name: 'Agent-1', status: 'active' as AgentStatus },
+    { name: 'Agent-2', status: 'idle' as AgentStatus },
+    { name: 'Agent-3', status: 'error' as AgentStatus },
   ];
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: AgentStatus): StatusColor => {
     switch (status) {
       case 'active':
         return 'success';
@@ -111,7 +114,7 @@ const Sidebar = ({ open }: SidebarProps) => {
               <Chip
                 label={agent.status}
                 size="small"
-                color={getStatusColor(agent.status) as any}
+                color={getStatusColor(agent.status)}
                 sx={{ height: 20 }}
               />
             </ListItem>
